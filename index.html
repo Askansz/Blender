@@ -3,51 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web 3D Modeler</title>
+    <title>3D Modeler</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Three.js library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
 </head>
 <body>
     <div class="app-container">
+        <!-- Header -->
         <header class="app-header">
-            <div class="logo">Web 3D Modeler</div>
+            <div class="logo">3D Modeler</div>
             <nav class="main-menu">
-                <button id="file-menu">File</button>
-                <button id="edit-menu">Edit</button>
-                <button id="view-menu">View</button>
-                <button id="object-menu">Object</button>
-                <button id="render-menu">Render</button>
+                <div class="menu-item" id="file-menu">File</div>
+                <div class="menu-item" id="edit-menu">Edit</div>
+                <div class="menu-item" id="view-menu">View</div>
+                <div class="menu-item" id="object-menu">Object</div>
+                <div class="menu-item" id="render-menu">Render</div>
             </nav>
+            <div class="status-bar">
+                <div id="status-message">Ready</div>
+                <div id="vertex-count">Vertices: 0</div>
+            </div>
         </header>
         
+        <!-- Main Content Area -->
         <div class="main-content">
-            <div class="sidebar left-sidebar">
-                <div class="tool-section">
+            <!-- Left Sidebar - Tools -->
+            <div class="left-sidebar">
+                <div class="sidebar-section">
                     <h3>Tools</h3>
-                    <button class="tool-btn" id="select-tool">Select</button>
-                    <button class="tool-btn" id="move-tool">Move</button>
-                    <button class="tool-btn" id="rotate-tool">Rotate</button>
-                    <button class="tool-btn" id="scale-tool">Scale</button>
+                    <div class="tool-group">
+                        <button class="tool-btn active" id="select-tool" title="Select">
+                            <svg viewBox="0 0 24 24"><path d="M7,2l12,11.2l-5.8,0.5l3.3,7.3l-2.2,1l-3.2-7.4L7,18.5V2"></path></svg>
+                        </button>
+                        <button class="tool-btn" id="move-tool" title="Move">
+                            <svg viewBox="0 0 24 24"><path d="M13,6v5h5v2h-5v5h-2v-5H6v-2h5V6H13z"></path></svg>
+                        </button>
+                        <button class="tool-btn" id="rotate-tool" title="Rotate">
+                            <svg viewBox="0 0 24 24"><path d="M12,5C8.13,5,5,8.13,5,12h2c0-2.76,2.24-5,5-5s5,2.24,5,5s-2.24,5-5,5v-2l-4,4l4,4v-2c3.87,0,7-3.13,7-7S15.87,5,12,5z"></path></svg>
+                        </button>
+                        <button class="tool-btn" id="scale-tool" title="Scale">
+                            <svg viewBox="0 0 24 24"><path d="M20,4h-2V2h-2v2h-4V2h-2v2H6v2h2v4H6v2h2v4H6v2h2v2h2v-2h4v2h2v-2h4v-2h-4v-4h4v-2h-4V6h4V4h-2zM14,14h-4v-4h4V14z"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="tool-section">
+                <div class="sidebar-section">
                     <h3>Add Object</h3>
-                    <button class="add-btn" id="add-cube">Cube</button>
-                    <button class="add-btn" id="add-sphere">Sphere</button>
-                    <button class="add-btn" id="add-cylinder">Cylinder</button>
-                    <button class="add-btn" id="add-plane">Plane</button>
+                    <div class="tool-group">
+                        <button class="add-btn" id="add-cube" title="Add Cube">
+                            <svg viewBox="0 0 24 24"><path d="M4,4H20V20H4V4M6,6V18H18V6H6Z"></path></svg>
+                        </button>
+                        <button class="add-btn" id="add-sphere" title="Add Sphere">
+                            <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path></svg>
+                        </button>
+                        <button class="add-btn" id="add-cylinder" title="Add Cylinder">
+                            <svg viewBox="0 0 24 24"><path d="M12,2A7,7 0 0,1 19,9V15A7,7 0 0,1 12,22A7,7 0 0,1 5,15V9A7,7 0 0,1 12,2M12,4A5,5 0 0,0 7,9V15A5,5 0 0,0 12,20A5,5 0 0,0 17,15V9A5,5 0 0,0 12,4Z"></path></svg>
+                        </button>
+                        <button class="add-btn" id="add-plane" title="Add Plane">
+                            <svg viewBox="0 0 24 24"><path d="M4,4H20V20H4V4M6,6V18H18V6H6Z" stroke="black" fill="none"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             
+            <!-- Main 3D Viewport -->
             <div class="viewport-container">
-                <canvas id="viewport"></canvas>
                 <div class="viewport-controls">
                     <div class="view-btn-group">
                         <button id="front-view">Front</button>
                         <button id="side-view">Side</button>
                         <button id="top-view">Top</button>
-                        <button id="perspective-view">Perspective</button>
+                        <button id="perspective-view" class="active">Perspective</button>
                     </div>
                     <div class="render-options">
                         <select id="render-mode">
@@ -57,83 +85,169 @@
                         </select>
                     </div>
                 </div>
+                <canvas id="viewport"></canvas>
             </div>
             
-            <div class="sidebar right-sidebar">
-                <div class="properties-panel">
+            <!-- Right Sidebar - Properties -->
+            <div class="right-sidebar">
+                <div class="sidebar-section">
                     <h3>Properties</h3>
-                    <div id="object-properties">
-                        <div class="property-group">
-                            <h4>Transform</h4>
-                            <div class="property">
-                                <label>Position X:</label>
-                                <input type="number" id="pos-x" value="0" step="0.1">
-                            </div>
-                            <div class="property">
-                                <label>Position Y:</label>
-                                <input type="number" id="pos-y" value="0" step="0.1">
-                            </div>
-                            <div class="property">
-                                <label>Position Z:</label>
-                                <input type="number" id="pos-z" value="0" step="0.1">
-                            </div>
-                            
-                            <div class="property">
-                                <label>Rotation X:</label>
-                                <input type="number" id="rot-x" value="0" step="0.1">
-                            </div>
-                            <div class="property">
-                                <label>Rotation Y:</label>
-                                <input type="number" id="rot-y" value="0" step="0.1">
-                            </div>
-                            <div class="property">
-                                <label>Rotation Z:</label>
-                                <input type="number" id="rot-z" value="0" step="0.1">
-                            </div>
-                            
-                            <div class="property">
-                                <label>Scale X:</label>
-                                <input type="number" id="scale-x" value="1" step="0.1">
-                            </div>
-                            <div class="property">
-                                <label>Scale Y:</label>
-                                <input type="number" id="scale-y" value="1" step="0.1">
-                            </div>
-                            <div class="property">
-                                <label>Scale Z:</label>
-                                <input type="number" id="scale-z" value="1" step="0.1">
-                            </div>
+                    <div id="selected-object">No object selected</div>
+                    
+                    <div class="property-group">
+                        <h4>Position</h4>
+                        <div class="property">
+                            <label for="pos-x">X:</label>
+                            <input type="number" id="pos-x" value="0" step="0.1">
                         </div>
-                        
-                        <div class="property-group">
-                            <h4>Material</h4>
-                            <div class="property">
-                                <label>Color:</label>
-                                <input type="color" id="obj-color" value="#3498db">
-                            </div>
-                            <div class="property">
-                                <label>Metalness:</label>
-                                <input type="range" id="metalness" min="0" max="1" value="0.1" step="0.1">
-                            </div>
-                            <div class="property">
-                                <label>Roughness:</label>
-                                <input type="range" id="roughness" min="0" max="1" value="0.7" step="0.1">
-                            </div>
+                        <div class="property">
+                            <label for="pos-y">Y:</label>
+                            <input type="number" id="pos-y" value="0" step="0.1">
+                        </div>
+                        <div class="property">
+                            <label for="pos-z">Z:</label>
+                            <input type="number" id="pos-z" value="0" step="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <h4>Rotation</h4>
+                        <div class="property">
+                            <label for="rot-x">X:</label>
+                            <input type="number" id="rot-x" value="0" step="1">
+                        </div>
+                        <div class="property">
+                            <label for="rot-y">Y:</label>
+                            <input type="number" id="rot-y" value="0" step="1">
+                        </div>
+                        <div class="property">
+                            <label for="rot-z">Z:</label>
+                            <input type="number" id="rot-z" value="0" step="1">
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <h4>Scale</h4>
+                        <div class="property">
+                            <label for="scale-x">X:</label>
+                            <input type="number" id="scale-x" value="1" step="0.1" min="0.1">
+                        </div>
+                        <div class="property">
+                            <label for="scale-y">Y:</label>
+                            <input type="number" id="scale-y" value="1" step="0.1" min="0.1">
+                        </div>
+                        <div class="property">
+                            <label for="scale-z">Z:</label>
+                            <input type="number" id="scale-z" value="1" step="0.1" min="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <h4>Material</h4>
+                        <div class="property">
+                            <label for="obj-color">Color:</label>
+                            <input type="color" id="obj-color" value="#3498db">
+                        </div>
+                        <div class="property">
+                            <label for="metalness">Metalness:</label>
+                            <input type="range" id="metalness" min="0" max="1" step="0.01" value="0.1">
+                        </div>
+                        <div class="property">
+                            <label for="roughness">Roughness:</label>
+                            <input type="range" id="roughness" min="0" max="1" step="0.01" value="0.7">
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <footer class="app-footer">
-            <div class="status-bar">
-                <div id="status-message">Ready</div>
-                <div id="vertex-count">Vertices: 0</div>
-                <div id="selected-object">No object selected</div>
-            </div>
-        </footer>
     </div>
 
+    <!-- Render Modal -->
+    <div id="render-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Render Image</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="render-settings">
+                    <div class="setting-group">
+                        <h3>Resolution</h3>
+                        <div class="setting">
+                            <label for="render-width">Width:</label>
+                            <input type="number" id="render-width" value="1920" min="100" max="7680">
+                        </div>
+                        <div class="setting">
+                            <label for="render-height">Height:</label>
+                            <input type="number" id="render-height" value="1080" min="100" max="4320">
+                        </div>
+                        <div class="presets">
+                            <button data-width="1280" data-height="720">HD (720p)</button>
+                            <button data-width="1920" data-height="1080">Full HD (1080p)</button>
+                            <button data-width="3840" data-height="2160">4K</button>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h3>Quality</h3>
+                        <div class="setting">
+                            <label for="render-quality">Quality:</label>
+                            <input type="range" id="render-quality" min="0.1" max="1.0" step="0.1" value="0.9">
+                            <span id="quality-value">0.9</span>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h3>Background</h3>
+                        <div class="setting">
+                            <input type="radio" id="bg-scene" name="background" value="scene" checked>
+                            <label for="bg-scene">Scene Background</label>
+                        </div>
+                        <div class="setting">
+                            <input type="radio" id="bg-transparent" name="background" value="transparent">
+                            <label for="bg-transparent">Transparent</label>
+                        </div>
+                        <div class="setting">
+                            <input type="radio" id="bg-custom" name="background" value="custom">
+                            <label for="bg-custom">Custom Color:</label>
+                            <input type="color" id="bg-color" value="#ffffff">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h3>File Format</h3>
+                        <div class="setting">
+                            <select id="file-format">
+                                <option value="png">PNG</option>
+                                <option value="jpg">JPG</option>
+                                <option value="webp">WebP</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="render-preview">
+                    <h3>Preview</h3>
+                    <div class="preview-container">
+                        <canvas id="render-preview"></canvas>
+                        <div id="render-loading" class="loading-overlay">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">Rendering...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button id="render-btn" class="primary-btn">Render</button>
+                    <button id="download-btn" class="primary-btn" disabled>Download</button>
+                    <button id="cancel-render" class="secondary-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include scripts -->
     <script src="script.js"></script>
+    <script src="render.js"></script>
 </body>
 </html>
