@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web 3D Modeler</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">Web 3D Modeler</div>
+            <nav class="main-menu">
+                <button id="file-menu">File</button>
+                <button id="edit-menu">Edit</button>
+                <button id="view-menu">View</button>
+                <button id="object-menu">Object</button>
+                <button id="render-menu">Render</button>
+            </nav>
+        </header>
+        
+        <div class="main-content">
+            <div class="sidebar left-sidebar">
+                <div class="tool-section">
+                    <h3>Tools</h3>
+                    <button class="tool-btn" id="select-tool">Select</button>
+                    <button class="tool-btn" id="move-tool">Move</button>
+                    <button class="tool-btn" id="rotate-tool">Rotate</button>
+                    <button class="tool-btn" id="scale-tool">Scale</button>
+                </div>
+                
+                <div class="tool-section">
+                    <h3>Add Object</h3>
+                    <button class="add-btn" id="add-cube">Cube</button>
+                    <button class="add-btn" id="add-sphere">Sphere</button>
+                    <button class="add-btn" id="add-cylinder">Cylinder</button>
+                    <button class="add-btn" id="add-plane">Plane</button>
+                </div>
+            </div>
+            
+            <div class="viewport-container">
+                <canvas id="viewport"></canvas>
+                <div class="viewport-controls">
+                    <div class="view-btn-group">
+                        <button id="front-view">Front</button>
+                        <button id="side-view">Side</button>
+                        <button id="top-view">Top</button>
+                        <button id="perspective-view">Perspective</button>
+                    </div>
+                    <div class="render-options">
+                        <select id="render-mode">
+                            <option value="solid">Solid</option>
+                            <option value="wireframe">Wireframe</option>
+                            <option value="material">Material</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar right-sidebar">
+                <div class="properties-panel">
+                    <h3>Properties</h3>
+                    <div id="object-properties">
+                        <div class="property-group">
+                            <h4>Transform</h4>
+                            <div class="property">
+                                <label>Position X:</label>
+                                <input type="number" id="pos-x" value="0" step="0.1">
+                            </div>
+                            <div class="property">
+                                <label>Position Y:</label>
+                                <input type="number" id="pos-y" value="0" step="0.1">
+                            </div>
+                            <div class="property">
+                                <label>Position Z:</label>
+                                <input type="number" id="pos-z" value="0" step="0.1">
+                            </div>
+                            
+                            <div class="property">
+                                <label>Rotation X:</label>
+                                <input type="number" id="rot-x" value="0" step="0.1">
+                            </div>
+                            <div class="property">
+                                <label>Rotation Y:</label>
+                                <input type="number" id="rot-y" value="0" step="0.1">
+                            </div>
+                            <div class="property">
+                                <label>Rotation Z:</label>
+                                <input type="number" id="rot-z" value="0" step="0.1">
+                            </div>
+                            
+                            <div class="property">
+                                <label>Scale X:</label>
+                                <input type="number" id="scale-x" value="1" step="0.1">
+                            </div>
+                            <div class="property">
+                                <label>Scale Y:</label>
+                                <input type="number" id="scale-y" value="1" step="0.1">
+                            </div>
+                            <div class="property">
+                                <label>Scale Z:</label>
+                                <input type="number" id="scale-z" value="1" step="0.1">
+                            </div>
+                        </div>
+                        
+                        <div class="property-group">
+                            <h4>Material</h4>
+                            <div class="property">
+                                <label>Color:</label>
+                                <input type="color" id="obj-color" value="#3498db">
+                            </div>
+                            <div class="property">
+                                <label>Metalness:</label>
+                                <input type="range" id="metalness" min="0" max="1" value="0.1" step="0.1">
+                            </div>
+                            <div class="property">
+                                <label>Roughness:</label>
+                                <input type="range" id="roughness" min="0" max="1" value="0.7" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="app-footer">
+            <div class="status-bar">
+                <div id="status-message">Ready</div>
+                <div id="vertex-count">Vertices: 0</div>
+                <div id="selected-object">No object selected</div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
