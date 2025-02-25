@@ -1,0 +1,236 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+:root {
+    --header-bg: #333;
+    --sidebar-bg: #282828;
+    --footer-bg: #3a3a3a;
+    --panel-bg: #3a3a3a;
+    --btn-bg: #444;
+    --btn-hover: #555;
+    --btn-active: #4a6baf;
+    --text-color: #ddd;
+    --border-color: #555;
+    --accent-color: #3498db;
+}
+
+body {
+    background-color: #1e1e1e;
+    color: var(--text-color);
+    overflow: hidden;
+    height: 100vh;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Header */
+.app-header {
+    background-color: var(--header-bg);
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.logo {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-right: 20px;
+    color: var(--accent-color);
+}
+
+.main-menu {
+    display: flex;
+    gap: 5px;
+}
+
+.main-menu button {
+    background-color: transparent;
+    border: none;
+    color: var(--text-color);
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.main-menu button:hover {
+    background-color: var(--btn-hover);
+}
+
+/* Main Content */
+.main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Sidebars */
+.sidebar {
+    background-color: var(--sidebar-bg);
+    width: 250px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    gap: 20px;
+}
+
+.tool-section {
+    background-color: var(--panel-bg);
+    border-radius: 5px;
+    padding: 12px;
+}
+
+.tool-section h3 {
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    color: var(--accent-color);
+    text-transform: uppercase;
+}
+
+.tool-btn, .add-btn {
+    display: block;
+    width: 100%;
+    background-color: var(--btn-bg);
+    color: var(--text-color);
+    border: none;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    border-radius: 3px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tool-btn:hover, .add-btn:hover {
+    background-color: var(--btn-hover);
+}
+
+.tool-btn.active {
+    background-color: var(--btn-active);
+}
+
+/* Properties Panel */
+.properties-panel {
+    background-color: var(--panel-bg);
+    border-radius: 5px;
+    padding: 12px;
+}
+
+.properties-panel h3 {
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    color: var(--accent-color);
+    text-transform: uppercase;
+}
+
+.property-group {
+    margin-bottom: 15px;
+}
+
+.property-group h4 {
+    font-size: 0.85em;
+    margin-bottom: 8px;
+    color: #ccc;
+}
+
+.property {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.property label {
+    flex: 0 0 90px;
+    font-size: 0.8em;
+}
+
+.property input {
+    flex: 1;
+    background-color: #444;
+    border: 1px solid #555;
+    color: var(--text-color);
+    padding: 3px 5px;
+    border-radius: 3px;
+}
+
+.property input[type="range"] {
+    height: 4px;
+    background-color: #555;
+    -webkit-appearance: none;
+}
+
+.property input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+}
+
+/* Viewport */
+.viewport-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+#viewport {
+    flex: 1;
+    background-color: #242424;
+}
+
+.viewport-controls {
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    background-color: var(--panel-bg);
+}
+
+.view-btn-group button {
+    background-color: var(--btn-bg);
+    color: var(--text-color);
+    border: none;
+    padding: 5px 10px;
+    margin-right: 5px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.view-btn-group button:hover {
+    background-color: var(--btn-hover);
+}
+
+.view-btn-group button.active {
+    background-color: var(--btn-active);
+}
+
+.render-options select {
+    background-color: var(--btn-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 5px;
+    border-radius: 3px;
+}
+
+/* Footer */
+.app-footer {
+    background-color: var(--footer-bg);
+    padding: 8px 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+}
