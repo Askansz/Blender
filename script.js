@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove all objects
         objects.forEach(obj => {
             scene.remove(obj);
-        });
+        }); 
         objects = [];
         
         // Reset selection
