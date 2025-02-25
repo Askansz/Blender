@@ -1,35 +1,60 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // DOM Elements
-    const viewport = document.getElementById('viewport');
-    const vertexCountDisplay = document.getElementById('vertex-count');
+    // Initialize Three.js scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x242424);
+    
+    // Initialize camera
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(3, 3, 5);
+    
+    // Initialize renderer
+    const renderer = new THREE.WebGLRenderer({
+        canvas: document.getElementById('viewport'),
+        antialias: true
+    });
+    resizeRenderer();
+    
+    // Add ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    
+    // Add directional light
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+    
+    // Add grid helper
+    const gridHelper = new THREE.GridHelper(10, 10);
+    scene.add(gridHelper);
+    
+    // Add axes helper
+    const axesHelper = new THREE.AxesHelper(3);
+    scene.add(axesHelper);
+    
+    // Add orbit controls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    
+    // Application state
+    let objects = [];
+    let selectedObject = null;
+    let currentTool = 'select';
+    let renderMode = 'solid';
+    let transformControls = null;
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    
+    // Elements
     const statusMessage = document.getElementById('status-message');
+    const vertexCount = document.getElementById('vertex-count');
+    const selectedObjectText = document.getElementById('selected-object');
+    const toolButtons = document.querySelectorAll('.tool-btn');
+    const addButtons = document.querySelectorAll('.add-btn');
+    const viewButtons = document.querySelectorAll('.view-btn-group button');
+    const renderModeSelect = document.getElementById('render-mode');
     
-    // Menu items
-    const fileMenu = document.getElementById('file-menu');
-    const editMenu = document.getElementById('edit-menu');
-    const viewMenu = document.getElementById('view-menu');
-    const objectMenu = document.getElementById('object-menu');
-    const renderMenu = document.getElementById('render-menu');
-    
-    // Tool buttons
-    const selectTool = document.getElementById('select-tool');
-    const moveTool = document.getElementById('move-tool');
-    const rotateTool = document.getElementById('rotate-tool');
-    const scaleTool = document.getElementById('scale-tool');
-    
-    // Add object buttons
-    const addCube = document.getElementById('add-cube');
-    const addSphere = document.getElementById('add-sphere');
-    const addCylinder = document.getElementById('add-cylinder');
-    const addPlane = document.getElementById('add-plane');
-    
-    // View buttons
-    const frontView = document.getElementById('front-view');
-    const sideView = document.getElementById('side-view');
-    const topView = document.getElementById('top-view');
-    const perspectiveView = document.getElementById('perspective-view');
-    
-    // Object property inputs
+    // Properties inputs
     const posX = document.getElementById('pos-x');
     const posY = document.getElementById('pos-y');
     const posZ = document.getElementById('pos-z');
@@ -43,626 +68,255 @@ document.addEventListener('DOMContentLoaded', function() {
     const metalness = document.getElementById('metalness');
     const roughness = document.getElementById('roughness');
     
-    // Render mode
-    const renderMode = document.getElementById('render-mode');
+    // Initialize transform controls
+    initTransformControls();
     
-    // Selection info
-    const selectedObjectInfo = document.getElementById('selected-object');
-    
-    // Three.js variables
-    let scene, camera, renderer, controls;
-    let objects = []; // Array to store all objects in the scene
-    let selectedObject = null;
-    let raycaster = new THREE.Raycaster();
-    let mouse = new THREE.Vector2();
-    let transformControls;
-    let currentTool = 'select';
-    let grid, axes;
-    
-    // Initialize the 3D scene
-    function init() {
-        // Create scene
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x242424);
-        
-        // Create camera
-        camera = new THREE.PerspectiveCamera(
-            45, viewport.clientWidth / viewport.clientHeight, 0.1, 1000
-        );
-        camera.position.set(5, 5, 5);
-        camera.lookAt(0, 0, 0);
-        
-        // Create renderer
-        renderer = new THREE.WebGLRenderer({ 
-            canvas: viewport, 
-            antialias: true 
-        });
-        renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.shadowMap.enabled = true;
-        
-        // Add orbit controls
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.25;
-        
-        // Add transform controls for manipulating objects
-        transformControls = new THREE.TransformControls(camera, renderer.domElement);
-        transformControls.addEventListener('dragging-changed', function(event) {
-            controls.enabled = !event.value;
-            if (!event.value && selectedObject) {
-                updateObjectProperties(selectedObject);
-                updateStatus('Object transformed');
-            }
-        });
-        scene.add(transformControls);
-        
-        // Create grid
-        grid = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
-        scene.add(grid);
-        
-        // Create axes
-        axes = new THREE.AxesHelper(5);
-        scene.add(axes);
-        
-        // Add lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-        
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(5, 10, 7.5);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        scene.add(directionalLight);
-        
-        // Add event listeners
-        setupEventListeners();
-        
-        // Start animation loop
-        animate();
-        
-        // Update status
-        updateStatus('3D scene initialized');
-    }
+    // Set up event listeners
+    setupEventListeners();
     
     // Animation loop
     function animate() {
         requestAnimationFrame(animate);
+        
         controls.update();
+        
+        if (transformControls) {
+            transformControls.update();
+        }
+        
         renderer.render(scene, camera);
     }
     
-    // Handle window resize
-    function onWindowResize() {
-        camera.aspect = viewport.clientWidth / viewport.clientHeight;
+    // Start animation
+    animate();
+    
+    // Functions
+    
+    function resizeRenderer() {
+        const container = document.querySelector('.viewport-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight - document.querySelector('.viewport-controls').clientHeight;
+        
+        renderer.setSize(width, height);
+        camera.aspect = width / height;
         camera.updateProjectionMatrix();
-        renderer.setSize(viewport.clientWidth, viewport.clientHeight);
     }
     
-    // Setup event listeners
+    function initTransformControls() {
+        // We're simulating transform controls since we can't use the actual THREE.TransformControls in this code
+        // In a real implementation, you would include the THREE.TransformControls.js file and use it
+        transformControls = {
+            attach: function(object) {
+                // Simulate attaching to an object
+                updateObjectProperties(object);
+            },
+            detach: function() {
+                // Simulate detaching
+            },
+            update: function() {
+                // Update controls if needed
+                if (selectedObject) {
+                    updateObjectProperties(selectedObject);
+                }
+            },
+            setMode: function(mode) {
+                // Set the transform mode (translate, rotate, scale)
+                updateStatusMessage('Transform mode: ' + mode);
+            }
+        };
+    }
+    
     function setupEventListeners() {
         // Window resize
-        window.addEventListener('resize', onWindowResize);
+        window.addEventListener('resize', resizeRenderer);
         
-        // Mouse click for selection
-        viewport.addEventListener('mousedown', onMouseDown);
+        // Tool buttons
+        document.getElementById('select-tool').addEventListener('click', () => setTool('select'));
+        document.getElementById('move-tool').addEventListener('click', () => setTool('move'));
+        document.getElementById('rotate-tool').addEventListener('click', () => setTool('rotate'));
+        document.getElementById('scale-tool').addEventListener('click', () => setTool('scale'));
         
-        // Tool selection
-        selectTool.addEventListener('click', () => setActiveTool('select'));
-        moveTool.addEventListener('click', () => setActiveTool('move'));
-        rotateTool.addEventListener('click', () => setActiveTool('rotate'));
-        scaleTool.addEventListener('click', () => setActiveTool('scale'));
+        // Add object buttons
+        document.getElementById('add-cube').addEventListener('click', () => addObject('cube'));
+        document.getElementById('add-sphere').addEventListener('click', () => addObject('sphere'));
+        document.getElementById('add-cylinder').addEventListener('click', () => addObject('cylinder'));
+        document.getElementById('add-plane').addEventListener('click', () => addObject('plane'));
         
-        // Add objects
-        addCube.addEventListener('click', () => createCube());
-        addSphere.addEventListener('click', () => createSphere());
-        addCylinder.addEventListener('click', () => createCylinder());
-        addPlane.addEventListener('click', () => createPlane());
-        
-        // View changes
-        frontView.addEventListener('click', () => setView('front'));
-        sideView.addEventListener('click', () => setView('side'));
-        topView.addEventListener('click', () => setView('top'));
-        perspectiveView.addEventListener('click', () => setView('perspective'));
+        // View buttons
+        document.getElementById('front-view').addEventListener('click', () => setView('front'));
+        document.getElementById('side-view').addEventListener('click', () => setView('side'));
+        document.getElementById('top-view').addEventListener('click', () => setView('top'));
+        document.getElementById('perspective-view').addEventListener('click', () => setView('perspective'));
         
         // Render mode
-        renderMode.addEventListener('change', updateRenderMode);
-        
-        // Menu clicks
-        fileMenu.addEventListener('click', () => showContextMenu(fileMenu, ['New', 'Open', 'Save', 'Export', 'Exit']));
-        editMenu.addEventListener('click', () => showContextMenu(editMenu, ['Undo', 'Redo', 'Copy', 'Paste', 'Delete']));
-        viewMenu.addEventListener('click', () => showContextMenu(viewMenu, ['Frame All', 'Toggle Grid', 'Toggle Axes', 'Wireframe Mode']));
-        objectMenu.addEventListener('click', () => showContextMenu(objectMenu, ['Group', 'Ungroup', 'Duplicate', 'Align', 'Center']));
-        renderMenu.addEventListener('click', () => showContextMenu(renderMenu, ['Render Image', 'Render Settings', 'Render Animation']));
-        
-        // Property inputs
-        posX.addEventListener('change', updateSelectedObjectTransform);
-        posY.addEventListener('change', updateSelectedObjectTransform);
-        posZ.addEventListener('change', updateSelectedObjectTransform);
-        rotX.addEventListener('change', updateSelectedObjectTransform);
-        rotY.addEventListener('change', updateSelectedObjectTransform);
-        rotZ.addEventListener('change', updateSelectedObjectTransform);
-        scaleX.addEventListener('change', updateSelectedObjectTransform);
-        scaleY.addEventListener('change', updateSelectedObjectTransform);
-        scaleZ.addEventListener('change', updateSelectedObjectTransform);
-        
-        // Material properties
-        objColor.addEventListener('input', updateSelectedObjectMaterial);
-        metalness.addEventListener('input', updateSelectedObjectMaterial);
-        roughness.addEventListener('input', updateSelectedObjectMaterial);
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', handleKeyDown);
-    }
-    
-    // Show context menu for menu items
-    function showContextMenu(element, items) {
-        // Remove any existing context menus
-        const existingMenus = document.querySelectorAll('.context-menu');
-        existingMenus.forEach(menu => menu.remove());
-        
-        // Create menu element
-        const menu = document.createElement('div');
-        menu.classList.add('context-menu');
-        
-        // Add menu items
-        items.forEach(item => {
-            const menuItem = document.createElement('div');
-            menuItem.classList.add('menu-item');
-            menuItem.textContent = item;
-            menuItem.addEventListener('click', () => {
-                handleMenuAction(item);
-                menu.remove();
-            });
-            menu.appendChild(menuItem);
+        renderModeSelect.addEventListener('change', () => {
+            renderMode = renderModeSelect.value;
+            updateRenderMode();
         });
         
-        // Position menu near the element
-        const rect = element.getBoundingClientRect();
-        menu.style.left = rect.left + 'px';
-        menu.style.top = (rect.bottom + 5) + 'px';
+        // Canvas click for object selection
+        const viewport = document.getElementById('viewport');
+        viewport.addEventListener('click', onCanvasClick);
         
-        // Add to document
-        document.body.appendChild(menu);
+        // Improved property input handling - add 'input' event for immediate updates
+        // Position
+        posX.addEventListener('input', updateObjectFromProperties);
+        posY.addEventListener('input', updateObjectFromProperties);
+        posZ.addEventListener('input', updateObjectFromProperties);
         
-        // Close on click outside
-        setTimeout(() => {
-            window.addEventListener('click', function closeMenu(e) {
-                if (!menu.contains(e.target) && e.target !== element) {
-                    menu.remove();
-                    window.removeEventListener('click', closeMenu);
-                }
-            });
-        }, 0);
+        // Rotation
+        rotX.addEventListener('input', updateObjectFromProperties);
+        rotY.addEventListener('input', updateObjectFromProperties);
+        rotZ.addEventListener('input', updateObjectFromProperties);
+        
+        // Scale
+        scaleX.addEventListener('input', updateObjectFromProperties);
+        scaleY.addEventListener('input', updateObjectFromProperties);
+        scaleZ.addEventListener('input', updateObjectFromProperties);
+        
+        // Material properties
+        objColor.addEventListener('input', updateObjectMaterial);
+        metalness.addEventListener('input', updateObjectMaterial);
+        roughness.addEventListener('input', updateObjectMaterial);
     }
-    
-    // Handle menu actions
-    function handleMenuAction(action) {
-        switch(action) {
-            case 'New':
-                clearScene();
-                updateStatus('New scene created');
-                break;
-            case 'Delete':
-                if (selectedObject) {
-                    deleteObject(selectedObject);
-                    updateStatus('Object deleted');
-                }
-                break;
-            case 'Frame All':
-                frameAllObjects();
-                updateStatus('Framed all objects');
-                break;
-            case 'Toggle Grid':
-                grid.visible = !grid.visible;
-                updateStatus(`Grid ${grid.visible ? 'shown' : 'hidden'}`);
-                break;
-            case 'Toggle Axes':
-                axes.visible = !axes.visible;
-                updateStatus(`Axes ${axes.visible ? 'shown' : 'hidden'}`);
-                break;
-            case 'Wireframe Mode':
-                toggleWireframeMode();
-                break;
-            case 'Duplicate':
-                if (selectedObject) {
-                    duplicateObject(selectedObject);
-                    updateStatus('Object duplicated');
-                }
-                break;
-            case 'Render Image':
-                // Handled by render.js
-                updateStatus('Opening render dialog...');
-                break;
-            default:
-                updateStatus(`Action: ${action} - Not implemented`);
-        }
-    }
-    
-    // Mouse down handler for object selection
-    function onMouseDown(event) {
-        // Calculate mouse position in normalized device coordinates
-        const rect = viewport.getBoundingClientRect();
-        mouse.x = ((event.clientX - rect.left) / viewport.clientWidth) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / viewport.clientHeight) * 2 + 1;
-        
-        // Raycast to find intersected objects
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(objects, false);
-        
-        if (intersects.length > 0) {
-            // Select the first intersected object
-            selectObject(intersects[0].object);
-        } else {
-            // Deselect if clicked on empty space
-            deselectObject();
-        }
-    }
-    
-    // Set active tool
-    function setActiveTool(tool) {
-        // Update UI
-        selectTool.classList.toggle('active', tool === 'select');
-        moveTool.classList.toggle('active', tool === 'move');
-        rotateTool.classList.toggle('active', tool === 'rotate');
-        scaleTool.classList.toggle('active', tool === 'scale');
-        
-        // Update tool state
+  
+      function setTool(tool) {
         currentTool = tool;
         
-        // Apply to transform controls if an object is selected
-        if (selectedObject) {
-            switch(tool) {
+        // Update UI
+        toolButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.id === tool + '-tool') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Set transform control mode
+        if (transformControls) {
+            switch (tool) {
                 case 'select':
-                    transformControls.detach();
+                    transformControls.setMode('translate');
                     break;
                 case 'move':
                     transformControls.setMode('translate');
-                    transformControls.attach(selectedObject);
                     break;
                 case 'rotate':
                     transformControls.setMode('rotate');
-                    transformControls.attach(selectedObject);
                     break;
                 case 'scale':
                     transformControls.setMode('scale');
-                    transformControls.attach(selectedObject);
                     break;
             }
         }
         
-        updateStatus(`Tool: ${tool}`);
+        updateStatusMessage('Tool: ' + tool);
     }
     
-    // Select an object
-    function selectObject(object) {
-        // Deselect previous object
-        if (selectedObject && selectedObject !== object) {
-            selectedObject.material.emissive.setHex(0x000000);
+    function addObject(type) {
+        let geometry;
+        let mesh;
+        let name;
+        
+        // Create geometry based on type
+        switch (type) {
+            case 'cube':
+                geometry = new THREE.BoxGeometry(1, 1, 1);
+                name = 'Cube';
+                break;
+            case 'sphere':
+                geometry = new THREE.SphereGeometry(0.5, 32, 32);
+                name = 'Sphere';
+                break;
+            case 'cylinder':
+                geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+                name = 'Cylinder';
+                break;
+            case 'plane':
+                geometry = new THREE.PlaneGeometry(1, 1);
+                name = 'Plane';
+                break;
         }
         
-        // Select new object
-        selectedObject = object;
-        selectedObject.material.emissive.setHex(0x333333);
-        
-        // Update UI
-        updateObjectProperties(object);
-        
-        // Update transform controls
-        if (currentTool !== 'select') {
-            transformControls.attach(selectedObject);
-        }
-        
-        updateStatus(`Selected: ${object.name || 'Object'}`);
-    }
-    
-    // Deselect the current object
-    function deselectObject() {
-        if (selectedObject) {
-            selectedObject.material.emissive.setHex(0x000000);
-            selectedObject = null;
-            
-            // Update UI
-            selectedObjectInfo.textContent = 'No object selected';
-            
-            // Clear transform controls
-            transformControls.detach();
-            
-            updateStatus('No selection');
-        }
-    }
-
-        // Update object properties panel with selected object's values
-    function updateObjectProperties(object) {
-        // Update selected object name
-        selectedObjectInfo.textContent = object.name || 'Unnamed Object';
-        
-        // Update position
-        posX.value = object.position.x.toFixed(2);
-        posY.value = object.position.y.toFixed(2);
-        posZ.value = object.position.z.toFixed(2);
-        
-        // Update rotation (convert from radians to degrees)
-        rotX.value = THREE.MathUtils.radToDeg(object.rotation.x).toFixed(1);
-        rotY.value = THREE.MathUtils.radToDeg(object.rotation.y).toFixed(1);
-        rotZ.value = THREE.MathUtils.radToDeg(object.rotation.z).toFixed(1);
-        
-        // Update scale
-        scaleX.value = object.scale.x.toFixed(2);
-        scaleY.value = object.scale.y.toFixed(2);
-        scaleZ.value = object.scale.z.toFixed(2);
-        
-        // Update material properties
-        const color = object.material.color;
-        objColor.value = '#' + color.getHexString();
-        
-        if (object.material.metalness !== undefined) {
-            metalness.value = object.material.metalness;
-        }
-        
-        if (object.material.roughness !== undefined) {
-            roughness.value = object.material.roughness;
-        }
-        
-        // Update vertex count
-        if (object.geometry) {
-            let vertexCount = 0;
-            if (object.geometry.attributes && object.geometry.attributes.position) {
-                vertexCount = object.geometry.attributes.position.count;
-            }
-            vertexCountDisplay.textContent = `Vertices: ${vertexCount}`;
-        }
-    }
-    
-    // Update object transform based on property panel inputs
-    function updateSelectedObjectTransform() {
-        if (!selectedObject) return;
-        
-        // Update position
-        selectedObject.position.set(
-            parseFloat(posX.value),
-            parseFloat(posY.value),
-            parseFloat(posZ.value)
-        );
-        
-        // Update rotation (convert from degrees to radians)
-        selectedObject.rotation.set(
-            THREE.MathUtils.degToRad(parseFloat(rotX.value)),
-            THREE.MathUtils.degToRad(parseFloat(rotY.value)),
-            THREE.MathUtils.degToRad(parseFloat(rotZ.value))
-        );
-        
-        // Update scale
-        selectedObject.scale.set(
-            parseFloat(scaleX.value),
-            parseFloat(scaleY.value),
-            parseFloat(scaleZ.value)
-        );
-        
-        updateStatus('Properties updated');
-    }
-    
-    // Update material properties
-    function updateSelectedObjectMaterial() {
-        if (!selectedObject) return;
-        
-        // Update color
-        selectedObject.material.color.set(objColor.value);
-        
-        // Update metalness and roughness for PBR materials
-        if (selectedObject.material.metalness !== undefined) {
-            selectedObject.material.metalness = parseFloat(metalness.value);
-        }
-        
-        if (selectedObject.material.roughness !== undefined) {
-            selectedObject.material.roughness = parseFloat(roughness.value);
-        }
-        
-        // Ensure material update
-        selectedObject.material.needsUpdate = true;
-        
-        updateStatus('Material updated');
-    }
-    
-    // Create a cube
-    function createCube(size = 1, position = { x: 0, y: 0, z: 0 }) {
-        const geometry = new THREE.BoxGeometry(size, size, size);
+        // Create material
         const material = new THREE.MeshStandardMaterial({
-            color: getRandomColor(),
-            metalness: 0.1,
-            roughness: 0.8
-        });
-        
-        const cube = new THREE.Mesh(geometry, material);
-        cube.position.set(position.x, position.y, position.z);
-        cube.castShadow = true;
-        cube.receiveShadow = true;
-        cube.name = 'Cube_' + objects.length;
-        
-        scene.add(cube);
-        objects.push(cube);
-        
-        selectObject(cube);
-        updateStatus('Cube created');
-        
-        return cube;
-    }
-    
-    // Create a sphere
-    function createSphere(radius = 0.5, position = { x: 0, y: 0, z: 0 }) {
-        const geometry = new THREE.SphereGeometry(radius, 32, 32);
-        const material = new THREE.MeshStandardMaterial({
-            color: getRandomColor(),
-            metalness: 0.1,
-            roughness: 0.6
-        });
-        
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.position.set(position.x, position.y, position.z);
-        sphere.castShadow = true;
-        sphere.receiveShadow = true;
-        sphere.name = 'Sphere_' + objects.length;
-        
-        scene.add(sphere);
-        objects.push(sphere);
-        
-        selectObject(sphere);
-        updateStatus('Sphere created');
-        
-        return sphere;
-    }
-    
-    // Create a cylinder
-    function createCylinder(
-        radius = 0.5, 
-        height = 1, 
-        position = { x: 0, y: 0, z: 0 }
-    ) {
-        const geometry = new THREE.CylinderGeometry(radius, radius, height, 32);
-        const material = new THREE.MeshStandardMaterial({
-            color: getRandomColor(),
+            color: 0x3498db,
             metalness: 0.1,
             roughness: 0.7
         });
         
-        const cylinder = new THREE.Mesh(geometry, material);
-        cylinder.position.set(position.x, position.y, position.z);
-        cylinder.castShadow = true;
-        cylinder.receiveShadow = true;
-        cylinder.name = 'Cylinder_' + objects.length;
+        // Create mesh
+        mesh = new THREE.Mesh(geometry, material);
+        mesh.name = name + '_' + objects.length;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         
-        scene.add(cylinder);
-        objects.push(cylinder);
+        // Add to scene and objects array
+        scene.add(mesh);
+        objects.push(mesh);
         
-        selectObject(cylinder);
-        updateStatus('Cylinder created');
+        // Select the new object
+        selectObject(mesh);
         
-        return cylinder;
+        updateStatusMessage('Added ' + name);
+        updateVertexCount();
     }
     
-    // Create a plane
-    function createPlane(size = 2, position = { x: 0, y: 0, z: 0 }) {
-        const geometry = new THREE.PlaneGeometry(size, size);
-        const material = new THREE.MeshStandardMaterial({
-            color: getRandomColor(),
-            metalness: 0.1,
-            roughness: 0.9,
-            side: THREE.DoubleSide
-        });
-        
-        const plane = new THREE.Mesh(geometry, material);
-        plane.position.set(position.x, position.y, position.z);
-        plane.receiveShadow = true;
-        plane.name = 'Plane_' + objects.length;
-        
-        scene.add(plane);
-        objects.push(plane);
-        
-        selectObject(plane);
-        updateStatus('Plane created');
-        
-        return plane;
-    }
-    
-    // Delete selected object
-    function deleteObject(object) {
-        scene.remove(object);
-        objects = objects.filter(obj => obj !== object);
-        
-        transformControls.detach();
-        selectedObject = null;
-        selectedObjectInfo.textContent = 'No object selected';
-        
-        updateStatus('Object deleted');
-    }
-    
-    // Duplicate selected object
-    function duplicateObject(object) {
-        let newObject;
-        
-        // Create a new object based on the type of the selected object
-        if (object.geometry instanceof THREE.BoxGeometry) {
-            const size = object.geometry.parameters.width;
-            newObject = createCube(size, {
-                x: object.position.x + 0.5,
-                y: object.position.y,
-                z: object.position.z
-            });
-        } else if (object.geometry instanceof THREE.SphereGeometry) {
-            const radius = object.geometry.parameters.radius;
-            newObject = createSphere(radius, {
-                x: object.position.x + 0.5,
-                y: object.position.y,
-                z: object.position.z
-            });
-        } else if (object.geometry instanceof THREE.CylinderGeometry) {
-            const radius = object.geometry.parameters.radiusTop;
-            const height = object.geometry.parameters.height;
-            newObject = createCylinder(radius, height, {
-                x: object.position.x + 0.5,
-                y: object.position.y,
-                z: object.position.z
-            });
-        } else if (object.geometry instanceof THREE.PlaneGeometry) {
-            const width = object.geometry.parameters.width;
-            newObject = createPlane(width, {
-                x: object.position.x + 0.5,
-                y: object.position.y,
-                z: object.position.z
-            });
+    function selectObject(object) {
+        // Deselect previous object if any
+        if (selectedObject) {
+            selectedObject.material.emissive.set(0x000000);
         }
         
-        // Copy properties
-        if (newObject) {
-            // Copy material properties
-            newObject.material.color.copy(object.material.color);
+        // Select new object
+        selectedObject = object;
+        
+        if (selectedObject) {
+            // Highlight selected object
+            selectedObject.material.emissive.set(0x333333);
             
-            if (object.material.metalness !== undefined && newObject.material.metalness !== undefined) {
-                newObject.material.metalness = object.material.metalness;
-            }
-            
-            if (object.material.roughness !== undefined && newObject.material.roughness !== undefined) {
-                newObject.material.roughness = object.material.roughness;
-            }
-            
-            // Copy rotation and scale
-            newObject.rotation.copy(object.rotation);
-            newObject.scale.copy(object.scale);
+            // Update transform controls
+            transformControls.attach(selectedObject);
             
             // Update UI
-            updateObjectProperties(newObject);
+            selectedObjectText.textContent = selectedObject.name;
+            updateObjectProperties(selectedObject);
+        } else {
+            transformControls.detach();
+            selectedObjectText.textContent = 'No object selected';
+            clearObjectProperties();
         }
     }
     
-    // Clear the scene
-    function clearScene() {
-        // Remove all objects
-        for (let i = objects.length - 1; i >= 0; i--) {
-            scene.remove(objects[i]);
+    function onCanvasClick(event) {
+        if (currentTool !== 'select') return;
+        
+        // Calculate mouse position in normalized device coordinates
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        // Raycasting
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(objects);
+        
+        if (intersects.length > 0) {
+            selectObject(intersects[0].object);
+        } else {
+            selectObject(null);
         }
-        objects = [];
-        
-        // Reset selection
-        transformControls.detach();
-        selectedObject = null;
-        selectedObjectInfo.textContent = 'No object selected';
-        
-        updateStatus('Scene cleared');
     }
     
-    // Set the camera view
-    function setView(viewType) {
+    function setView(view) {
         // Update UI
-        frontView.classList.toggle('active', viewType === 'front');
-        sideView.classList.toggle('active', viewType === 'side');
-        topView.classList.toggle('active', viewType === 'top');
-        perspectiveView.classList.toggle('active', viewType === 'perspective');
+        viewButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.id === view + '-view') {
+                btn.classList.add('active');
+            }
+        });
         
-        // Update camera
-        controls.reset();
-        
-        switch(viewType) {
+        // Set camera position based on view
+        switch (view) {
             case 'front':
                 camera.position.set(0, 0, 5);
                 camera.lookAt(0, 0, 0);
@@ -676,252 +330,352 @@ document.addEventListener('DOMContentLoaded', function() {
                 camera.lookAt(0, 0, 0);
                 break;
             case 'perspective':
-                camera.position.set(5, 5, 5);
+                camera.position.set(3, 3, 5);
                 camera.lookAt(0, 0, 0);
                 break;
         }
         
-        updateStatus(`View: ${viewType}`);
+        // Reset controls target
+        controls.target.set(0, 0, 0);
+        controls.update();
+        
+        updateStatusMessage('View: ' + view);
     }
     
-    // Update render mode
     function updateRenderMode() {
-        const mode = renderMode.value;
-        
         objects.forEach(obj => {
-            switch(mode) {
+            switch (renderMode) {
+                case 'solid':
+                    obj.material.wireframe = false;
+                    break;
                 case 'wireframe':
                     obj.material.wireframe = true;
                     break;
-                case 'solid':
+                case 'material':
                     obj.material.wireframe = false;
+                    // Additional material settings could be applied here
                     break;
             }
         });
         
-        updateStatus(`Render mode: ${mode}`);
+        updateStatusMessage('Render mode: ' + renderMode);
     }
     
-    // Toggle wireframe mode
-    function toggleWireframeMode() {
-        const currentMode = renderMode.value;
+    function updateObjectProperties(object) {
+        if (!object) return;
         
-        if (currentMode === 'solid') {
-            renderMode.value = 'wireframe';
-        } else {
-            renderMode.value = 'solid';
-        }
+        // Set input values with actual values (no rounding/formatting)
+        posX.value = object.position.x;
+        posY.value = object.position.y;
+        posZ.value = object.position.z;
         
-        updateRenderMode();
+        rotX.value = THREE.MathUtils.radToDeg(object.rotation.x);
+        rotY.value = THREE.MathUtils.radToDeg(object.rotation.y);
+        rotZ.value = THREE.MathUtils.radToDeg(object.rotation.z);
+        
+        scaleX.value = object.scale.x;
+        scaleY.value = object.scale.y;
+        scaleZ.value = object.scale.z;
+        
+        // Update material inputs
+        const hexColor = '#' + object.material.color.getHexString();
+        objColor.value = hexColor;
+        
+        metalness.value = object.material.metalness;
+        roughness.value = object.material.roughness;
     }
     
-    // Frame all objects
-    function frameAllObjects() {
-        if (objects.length === 0) return;
+    function updateObjectFromProperties() {
+        if (!selectedObject) return;
         
-        // Create a bounding box containing all objects
-        const boundingBox = new THREE.Box3();
+        // Parse input values more robustly with fallbacks for invalid inputs
+        const posXVal = parseFloat(posX.value) || 0;
+        const posYVal = parseFloat(posY.value) || 0;
+        const posZVal = parseFloat(posZ.value) || 0;
         
-        // Add all objects to the bounding box
-        objects.forEach(obj => {
-            boundingBox.expandByObject(obj);
-        });
+        const rotXVal = parseFloat(rotX.value) || 0;
+        const rotYVal = parseFloat(rotY.value) || 0;
+        const rotZVal = parseFloat(rotZ.value) || 0;
         
-        const center = new THREE.Vector3();
-        boundingBox.getCenter(center);
+        const scaleXVal = parseFloat(scaleX.value) || 1;
+        const scaleYVal = parseFloat(scaleY.value) || 1;
+        const scaleZVal = parseFloat(scaleZ.value) || 1;
         
-        const size = new THREE.Vector3();
-        boundingBox.getSize(size);
+        // Update transform
+        selectedObject.position.set(posXVal, posYVal, posZVal);
         
-        // Get the max side of the bounding box
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const fov = camera.fov * (Math.PI / 180);
-        let cameraZ = Math.abs(maxDim / Math.sin(fov / 2)) * 1.5;
-        
-        // Set camera position and target
-        const direction = new THREE.Vector3(1, 1, 1).normalize();
-        camera.position.copy(center).add(direction.multiplyScalar(cameraZ));
-        controls.target.copy(center);
-        
-        // Update camera
-        camera.updateProjectionMatrix();
-        controls.update();
-    }
-    
-    // Handle keyboard shortcuts
-    function handleKeyDown(event) {
-        // Skip if inside input field
-        if (event.target.tagName === 'INPUT') return;
-        
-        switch(event.key) {
-            case 'Delete':
-                if (selectedObject) {
-                    deleteObject(selectedObject);
-                }
-                break;
-            case 'q':
-                setActiveTool('select');
-                break;
-            case 'w':
-                setActiveTool('move');
-                break;
-            case 'e':
-                setActiveTool('rotate');
-                break;
-            case 'r':
-                setActiveTool('scale');
-                break;
-            case 'f':
-                if (selectedObject) {
-                    controls.target.copy(selectedObject.position);
-                    controls.update();
-                }
-                break;
-            case 'a':
-                frameAllObjects();
-                break;
-            case '1':
-                createCube();
-                break;
-            case '2':
-                createSphere();
-                break;
-            case '3':
-                createCylinder();
-                break;
-            case '4':
-                createPlane();
-                break;
-        }
-    }
-    
-    // Get a random color
-    function getRandomColor() {
-        return new THREE.Color(
-            Math.random() * 0.5 + 0.5,
-            Math.random() * 0.5 + 0.5,
-            Math.random() * 0.5 + 0.5
+        selectedObject.rotation.set(
+            THREE.MathUtils.degToRad(rotXVal),
+            THREE.MathUtils.degToRad(rotYVal),
+            THREE.MathUtils.degToRad(rotZVal)
         );
+        
+        selectedObject.scale.set(scaleXVal, scaleYVal, scaleZVal);
     }
     
-    // Update status message
-    function updateStatus(message) {
+    function updateObjectMaterial() {
+        if (!selectedObject) return;
+        
+        // Update material properties
+        selectedObject.material.color.set(objColor.value);
+        selectedObject.material.metalness = parseFloat(metalness.value);
+        selectedObject.material.roughness = parseFloat(roughness.value);
+    }
+    
+        function clearObjectProperties() {
+        // Clear all property inputs
+        posX.value = 0;
+        posY.value = 0;
+        posZ.value = 0;
+        rotX.value = 0;
+        rotY.value = 0;
+        rotZ.value = 0;
+        scaleX.value = 1;
+        scaleY.value = 1;
+        scaleZ.value = 1;
+        objColor.value = '#3498db';
+        metalness.value = 0.1;
+        roughness.value = 0.7;
+    }
+    
+    function updateStatusMessage(message) {
         statusMessage.textContent = message;
-        console.log(message);
+        
+        // Clear status after 3 seconds
+        setTimeout(() => {
+            statusMessage.textContent = 'Ready';
+        }, 3000);
     }
     
-    // Initialize the app
-    init();
-    
-    // Connect the render system to our scene
-    if (window.connectRenderSystem) {
-        // Pass references to our Three.js scene, camera, renderer, and objects array
-        window.connectRenderSystem(scene, camera, renderer, objects);
-    }
-    
-    // Define a function to ensure objects are captured in the render
-    window.updateRenderObjects = function() {
-        if (window.connectRenderSystem) {
-
-        // Define a function to ensure objects are captured in the render
-    window.updateRenderObjects = function() {
-        if (window.connectRenderSystem) {
-            // Update the render system with current objects
-            window.connectRenderSystem(scene, camera, renderer, objects);
-        }
-    };
-    
-    // Make sure to call updateRenderObjects() whenever you add or remove objects
-    // For example, after adding a new object:
-    function addNewObject(object) {
-        scene.add(object);
-        objects.push(object);
-        
-        // Update the render system
-        if (window.updateRenderObjects) {
-            window.updateRenderObjects();
-        }
-    }
-    
-    // Add functions to camera to help with framing objects
-    camera.frameAll = function() {
-        if (objects.length === 0) return;
-        
-        // Create a bounding box containing all objects
-        const boundingBox = new THREE.Box3();
-        
-        // Add all objects to the bounding box
+    function updateVertexCount() {
+        let count = 0;
         objects.forEach(obj => {
-            boundingBox.expandByObject(obj);
+            if (obj.geometry) {
+                // Get vertex count
+                if (obj.geometry.attributes && obj.geometry.attributes.position) {
+                    count += obj.geometry.attributes.position.count;
+                }
+            }
         });
         
-        const center = new THREE.Vector3();
-        boundingBox.getCenter(center);
-        
-        const size = new THREE.Vector3();
-        boundingBox.getSize(size);
-        
-        // Get the max side of the bounding box
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const fov = camera.fov * (Math.PI / 180);
-        let cameraZ = Math.abs(maxDim / Math.sin(fov / 2)) * 1.5;
-        
-        // Set camera position and target
-        const direction = new THREE.Vector3(1, 1, 1).normalize();
-        camera.position.copy(center).add(direction.multiplyScalar(cameraZ));
-        controls.target.copy(center);
-        
-        // Update camera
-        camera.updateProjectionMatrix();
-        controls.update();
-    };
+        vertexCount.textContent = 'Vertices: ' + count;
+    }
     
-    // Override the default object creation functions to ensure they update the render system
-    const originalCreateCube = createCube;
-    createCube = function(size, position) {
-        const cube = originalCreateCube(size, position);
-        if (window.updateRenderObjects) window.updateRenderObjects();
-        return cube;
-    };
+    // Additional functions for a more complete application
     
-    const originalCreateSphere = createSphere;
-    createSphere = function(radius, position) {
-        const sphere = originalCreateSphere(radius, position);
-        if (window.updateRenderObjects) window.updateRenderObjects();
-        return sphere;
-    };
+    // Menu functionalities (simplified)
+    document.getElementById('file-menu').addEventListener('click', function() {
+        const options = ['New', 'Open', 'Save', 'Export', 'Import'];
+        showContextMenu(this, options);
+    });
     
-    const originalCreateCylinder = createCylinder;
-    createCylinder = function(radius, height, position) {
-        const cylinder = originalCreateCylinder(radius, height, position);
-        if (window.updateRenderObjects) window.updateRenderObjects();
-        return cylinder;
-    };
+    document.getElementById('edit-menu').addEventListener('click', function() {
+        const options = ['Undo', 'Redo', 'Delete', 'Duplicate', 'Select All'];
+        showContextMenu(this, options);
+    });
     
-    const originalCreatePlane = createPlane;
-    createPlane = function(size, position) {
-        const plane = originalCreatePlane(size, position);
-        if (window.updateRenderObjects) window.updateRenderObjects();
-        return plane;
-    };
+    document.getElementById('view-menu').addEventListener('click', function() {
+        const options = ['Show Grid', 'Show Axes', 'Toggle Wireframe', 'Viewport Render Options'];
+        showContextMenu(this, options);
+    });
     
-    const originalDeleteObject = deleteObject;
-    deleteObject = function(object) {
-        originalDeleteObject(object);
-        if (window.updateRenderObjects) window.updateRenderObjects();
-    };
+    document.getElementById('object-menu').addEventListener('click', function() {
+        const options = ['Add', 'Delete', 'Duplicate', 'Join', 'Separate'];
+        showContextMenu(this, options);
+    });
     
-    // Initialize with some objects to show functionality
-    setTimeout(() => {
-        // Add a few starter objects
-        createCube(1, { x: -1.5, y: 0, z: 0 });
-        createSphere(0.5, { x: 0, y: 0, z: 0 });
-        createCylinder(0.5, 1, { x: 1.5, y: 0, z: 0 });
+    document.getElementById('render-menu').addEventListener('click', function() {
+        const options = ['Render Image', 'Render Settings', 'Render Animation'];
+        showContextMenu(this, options);
+    });
+    
+    function showContextMenu(element, options) {
+        // Remove any existing context menu
+        const existingMenu = document.querySelector('.context-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
         
-        // Frame all objects
-        frameAllObjects();
+        // Create context menu
+        const menu = document.createElement('div');
+        menu.classList.add('context-menu');
         
-        // Update status
-        updateStatus('Ready');
-    }, 500);
+        // Add menu options
+        options.forEach(option => {
+            const item = document.createElement('div');
+            item.classList.add('menu-item');
+            item.textContent = option;
+            item.addEventListener('click', () => {
+                handleMenuAction(option);
+                menu.remove();
+            });
+            menu.appendChild(item);
+        });
+        
+        // Position the menu
+        const rect = element.getBoundingClientRect();
+        menu.style.position = 'absolute';
+        menu.style.top = (rect.bottom + 5) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.style.backgroundColor = '#333';
+        menu.style.color = '#ddd';
+        menu.style.border = '1px solid #555';
+        menu.style.borderRadius = '3px';
+        menu.style.padding = '5px 0';
+        menu.style.zIndex = '1000';
+        menu.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.3)';
+        menu.style.minWidth = '150px';
+        
+        // Style menu items
+        const items = menu.querySelectorAll('.menu-item');
+        items.forEach(item => {
+            item.style.padding = '5px 15px';
+            item.style.cursor = 'pointer';
+            item.style.transition = 'background-color 0.2s';
+            
+            item.addEventListener('mouseover', () => {
+                item.style.backgroundColor = '#444';
+            });
+            
+            item.addEventListener('mouseout', () => {
+                item.style.backgroundColor = 'transparent';
+            });
+        });
+        
+        // Add to document
+        document.body.appendChild(menu);
+        
+        // Click outside to close
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target) && e.target !== element) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }
+    
+    function handleMenuAction(action) {
+        // Simple implementation for demo purposes
+        
+        switch (action) {
+            case 'New':
+                resetScene();
+                break;
+            case 'Delete':
+                deleteSelectedObject();
+                break;
+            case 'Duplicate':
+                duplicateSelectedObject();
+                break;
+            case 'Show Grid':
+                toggleGridHelper();
+                break;
+            case 'Show Axes':
+                toggleAxesHelper();
+                break;
+            case 'Toggle Wireframe':
+                toggleWireframe();
+                break;
+            default:
+                updateStatusMessage('Action: ' + action);
+                break;
+        }
+    }
+    
+    function resetScene() {
+        // Remove all objects
+        objects.forEach(obj => {
+            scene.remove(obj);
+        });
+        objects = [];
+        
+        // Reset selection
+        selectedObject = null;
+        transformControls.detach();
+        clearObjectProperties();
+        
+        // Update UI
+        selectedObjectText.textContent = 'No object selected';
+        updateVertexCount();
+        updateStatusMessage('Scene reset');
+    }
+    
+    function deleteSelectedObject() {
+        if (!selectedObject) {
+            updateStatusMessage('No object selected');
+            return;
+        }
+        
+        // Remove from scene and objects array
+        scene.remove(selectedObject);
+        objects = objects.filter(obj => obj !== selectedObject);
+        
+        // Update selection
+        selectedObject = null;
+        transformControls.detach();
+        clearObjectProperties();
+        
+        // Update UI
+        selectedObjectText.textContent = 'No object selected';
+        updateVertexCount();
+        updateStatusMessage('Object deleted');
+    }
+    
+    function duplicateSelectedObject() {
+        if (!selectedObject) {
+            updateStatusMessage('No object selected');
+            return;
+        }
+        
+        // Clone geometry and material
+        const newGeometry = selectedObject.geometry.clone();
+        const newMaterial = selectedObject.material.clone();
+        
+        // Create new mesh
+        const newMesh = new THREE.Mesh(newGeometry, newMaterial);
+        newMesh.name = selectedObject.name + '_copy';
+        
+        // Copy transform
+        newMesh.position.copy(selectedObject.position);
+        newMesh.position.x += 0.5; // Offset slightly
+        newMesh.rotation.copy(selectedObject.rotation);
+        newMesh.scale.copy(selectedObject.scale);
+        
+        // Add to scene and objects array
+        scene.add(newMesh);
+        objects.push(newMesh);
+        
+        // Select the new object
+        selectObject(newMesh);
+        
+        updateVertexCount();
+        updateStatusMessage('Object duplicated');
+    }
+    
+    function toggleGridHelper() {
+        gridHelper.visible = !gridHelper.visible;
+        updateStatusMessage('Grid ' + (gridHelper.visible ? 'shown' : 'hidden'));
+    }
+    
+    function toggleAxesHelper() {
+        axesHelper.visible = !axesHelper.visible;
+        updateStatusMessage('Axes ' + (axesHelper.visible ? 'shown' : 'hidden'));
+    }
+    
+    function toggleWireframe() {
+        // Toggle wireframe for all objects
+        objects.forEach(obj => {
+            obj.material.wireframe = !obj.material.wireframe;
+        });
+        
+        // Update UI
+        renderModeSelect.value = objects.length > 0 && objects[0].material.wireframe ? 'wireframe' : 'solid';
+        
+        updateStatusMessage('Wireframe ' + (objects.length > 0 && objects[0].material.wireframe ? 'on' : 'off'));
+    }
+    
+    // Initialize with default settings
+    setTool('select');
+    setView('perspective');
+    updateStatusMessage('3D Modeler loaded successfully');
 });
